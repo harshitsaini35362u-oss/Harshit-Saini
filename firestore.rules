@@ -1,0 +1,172 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isScoreInt(val) {
+      return val is int && val >= 0 && val <= 100;
+    }
+
+    function isValidScoreBreakdown(sb) {
+      return sb is map &&
+        sb.keys().hasAll([
+          'keywordMatch',
+          'technicalSkills',
+          'workExperience',
+          'jobTitleRelevance',
+          'educationCertifications',
+          'softSkills',
+          'formattingReadability'
+        ]) &&
+        sb.keys().hasOnly([
+          'keywordMatch',
+          'technicalSkills',
+          'workExperience',
+          'jobTitleRelevance',
+          'educationCertifications',
+          'softSkills',
+          'formattingReadability'
+        ]) &&
+        isScoreInt(sb.keywordMatch) &&
+        isScoreInt(sb.technicalSkills) &&
+        isScoreInt(sb.workExperience) &&
+        isScoreInt(sb.jobTitleRelevance) &&
+        isScoreInt(sb.educationCertifications) &&
+        isScoreInt(sb.softSkills) &&
+        isScoreInt(sb.formattingReadability);
+    }
+
+    function isBoundedStringList(arr, maxLen) {
+      return arr is list &&
+        arr.size() <= maxLen &&
+        (arr.size() == 0 || arr[0] is string);
+    }
+
+    function isValidSavedAnalysis(data) {
+      return data.keys().hasAll([
+          'ownerId',
+          'sessionLabel',
+          'targetRole',
+          'resumeFilename',
+          'wordCount',
+          'overallScore',
+          'scoreCategory',
+          'scoreBreakdown',
+          'matchedKeywords',
+          'missingKeywords',
+          'missingTechnicalSkills',
+          'suggestedKeywords',
+          'strengths',
+          'weaknesses',
+          'recommendations',
+          'summaryFeedback',
+          'improvedProfessionalSummary',
+          'optimizationChecklist',
+          'jobDescriptionSnippet',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId',
+          'sessionLabel',
+          'targetRole',
+          'resumeFilename',
+          'wordCount',
+          'overallScore',
+          'scoreCategory',
+          'scoreBreakdown',
+          'matchedKeywords',
+          'missingKeywords',
+          'missingTechnicalSkills',
+          'suggestedKeywords',
+          'strengths',
+          'weaknesses',
+          'recommendations',
+          'summaryFeedback',
+          'improvedProfessionalSummary',
+          'optimizationChecklist',
+          'jobDescriptionSnippet',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.ownerId is string &&
+        data.ownerId == request.auth.uid &&
+        data.ownerId.size() >= 1 &&
+        data.ownerId.size() <= 128 &&
+        data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.sessionLabel is string &&
+        data.sessionLabel.size() >= 1 &&
+        data.sessionLabel.size() <= 160 &&
+        data.targetRole is string &&
+        data.targetRole.size() <= 160 &&
+        data.resumeFilename is string &&
+        data.resumeFilename.size() >= 1 &&
+        data.resumeFilename.size() <= 255 &&
+        data.wordCount is int &&
+        data.wordCount >= 0 &&
+        data.wordCount <= 100000 &&
+        isScoreInt(data.overallScore) &&
+        data.scoreCategory in ['Poor', 'Average', 'Good', 'Excellent'] &&
+        isValidScoreBreakdown(data.scoreBreakdown) &&
+        isBoundedStringList(data.matchedKeywords, 60) &&
+        isBoundedStringList(data.missingKeywords, 60) &&
+        isBoundedStringList(data.missingTechnicalSkills, 40) &&
+        isBoundedStringList(data.suggestedKeywords, 40) &&
+        isBoundedStringList(data.strengths, 20) &&
+        isBoundedStringList(data.weaknesses, 20) &&
+        isBoundedStringList(data.recommendations, 20) &&
+        data.summaryFeedback is string &&
+        data.summaryFeedback.size() <= 2000 &&
+        data.improvedProfessionalSummary is string &&
+        data.improvedProfessionalSummary.size() <= 2500 &&
+        isBoundedStringList(data.optimizationChecklist, 20) &&
+        data.jobDescriptionSnippet is string &&
+        data.jobDescriptionSnippet.size() <= 1500 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    match /analyses/{analysisId} {
+      allow get: if isSignedIn() && isValidId(analysisId) && existing().ownerId == request.auth.uid;
+      allow list: if isSignedIn() && existing().ownerId == request.auth.uid;
+      allow create: if isVerifiedUser() &&
+        isValidId(analysisId) &&
+        isValidSavedAnalysis(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser() &&
+        isValidId(analysisId) &&
+        isValidSavedAnalysis(incoming()) &&
+        existing().ownerId == request.auth.uid &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['sessionLabel', 'targetRole', 'updatedAt']);
+      allow delete: if isVerifiedUser() && isValidId(analysisId) && existing().ownerId == request.auth.uid;
+    }
+  }
+}

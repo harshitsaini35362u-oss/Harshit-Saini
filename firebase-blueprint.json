@@ -1,0 +1,165 @@
+{
+  "entities": {
+    "ScoreBreakdown": {
+      "title": "ScoreBreakdown",
+      "description": "Weighted ATS category scores from 0 to 100.",
+      "type": "object",
+      "properties": {
+        "keywordMatch": { "type": "integer", "description": "Keyword match score (0-100)." },
+        "technicalSkills": { "type": "integer", "description": "Technical skills score (0-100)." },
+        "workExperience": { "type": "integer", "description": "Work experience relevance score (0-100)." },
+        "jobTitleRelevance": { "type": "integer", "description": "Job title relevance score (0-100)." },
+        "educationCertifications": { "type": "integer", "description": "Education & certifications score (0-100)." },
+        "softSkills": { "type": "integer", "description": "Soft skills score (0-100)." },
+        "formattingReadability": { "type": "integer", "description": "Resume structure & readability score (0-100)." }
+      },
+      "required": [
+        "keywordMatch",
+        "technicalSkills",
+        "workExperience",
+        "jobTitleRelevance",
+        "educationCertifications",
+        "softSkills",
+        "formattingReadability"
+      ]
+    },
+    "SavedAnalysisSession": {
+      "title": "SavedAnalysisSession",
+      "description": "A saved ATS resume analysis session owned by an authenticated user.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID of the session owner."
+        },
+        "sessionLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "description": "User-provided label for this analysis iteration (e.g. role or resume version)."
+        },
+        "targetRole": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 160,
+          "description": "Optional target job title or company."
+        },
+        "resumeFilename": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "description": "Original filename of the analyzed PDF or DOCX resume."
+        },
+        "wordCount": {
+          "type": "integer",
+          "description": "Extracted resume word count."
+        },
+        "overallScore": {
+          "type": "integer",
+          "description": "Calculated overall ATS score (0-100)."
+        },
+        "scoreCategory": {
+          "type": "string",
+          "enum": ["Poor", "Average", "Good", "Excellent"],
+          "description": "Derived overall score category."
+        },
+        "scoreBreakdown": {
+          "$ref": "#/entities/ScoreBreakdown",
+          "description": "Seven-category weighted ATS breakdown."
+        },
+        "matchedKeywords": {
+          "type": "array",
+          "description": "Matched keywords from the job description (max 60 items)."
+        },
+        "missingKeywords": {
+          "type": "array",
+          "description": "Missing keywords from the job description (max 60 items)."
+        },
+        "missingTechnicalSkills": {
+          "type": "array",
+          "description": "Missing technical skills (max 40 items)."
+        },
+        "suggestedKeywords": {
+          "type": "array",
+          "description": "Experience-grounded suggested keywords (max 40 items)."
+        },
+        "strengths": {
+          "type": "array",
+          "description": "Key resume strengths (max 20 items)."
+        },
+        "weaknesses": {
+          "type": "array",
+          "description": "Key resume weaknesses (max 20 items)."
+        },
+        "recommendations": {
+          "type": "array",
+          "description": "Actionable improvement items (max 20 items)."
+        },
+        "summaryFeedback": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 2000,
+          "description": "Concise executive summary of the evaluation."
+        },
+        "improvedProfessionalSummary": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 2500,
+          "description": "AI-recommended professional summary."
+        },
+        "optimizationChecklist": {
+          "type": "array",
+          "description": "Optimization checklist items (max 20 items)."
+        },
+        "jobDescriptionSnippet": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 1500,
+          "description": "Truncated snippet of the target job description for reference."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the session was saved."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the session was last updated."
+        }
+      },
+      "required": [
+        "ownerId",
+        "sessionLabel",
+        "targetRole",
+        "resumeFilename",
+        "wordCount",
+        "overallScore",
+        "scoreCategory",
+        "scoreBreakdown",
+        "matchedKeywords",
+        "missingKeywords",
+        "missingTechnicalSkills",
+        "suggestedKeywords",
+        "strengths",
+        "weaknesses",
+        "recommendations",
+        "summaryFeedback",
+        "improvedProfessionalSummary",
+        "optimizationChecklist",
+        "jobDescriptionSnippet",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/analyses/{analysisId}": {
+      "schema": { "$ref": "#/entities/SavedAnalysisSession" },
+      "description": "Stores saved ATS resume analysis sessions per authenticated user for historical score tracking."
+    }
+  }
+}

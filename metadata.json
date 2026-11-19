@@ -1,0 +1,8 @@
+{
+  "name": "ATS Resume Analyzer",
+  "description": "AI-powered Resume ATS Score Checker that analyzes PDF and DOCX resumes against job descriptions, calculates weighted compatibility scores, identifies keyword gaps, and generates actionable resume improvements and PDF reports.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
